@@ -15,8 +15,13 @@ const CRAYONS = [
 ];
 const SIZES = [3, 6, 12, 24];
 
-// Same per-corner-uneven technique as Home.tsx's cardWobble — reused here
-// so the canvas frame reads as hand-drawn instead of a uniform rounded-2xl.
+// How long we wait, after ONE finger touches down, before committing to a
+// draw stroke — long enough for a second finger to reveal itself as part
+// of the same gesture, short enough that a single-finger draw still feels
+// instant. 60ms is the same order of magnitude iOS itself uses internally
+// to disambiguate tap-vs-gesture.
+const TOUCH_DISAMBIGUATION_MS = 60;
+
 const canvasWobble = 'rounded-tl-[26px] rounded-tr-[14px] rounded-br-[30px] rounded-bl-[18px]';
 const pillWobble = 'rounded-tl-[10px] rounded-tr-[14px] rounded-br-[10px] rounded-bl-[14px]';
 
@@ -32,6 +37,40 @@ export function DrawingCanvas({ roomId }: { roomId: string }) {
     const isDrawingRef = useRef(false);
     const lastLocalPoint = useRef<Point | null>(null);
     const lastRemotePoint = useRef<Point | null>(null);
+    const activeDrawPointerId = useRef<number | null>(null);
+
+    // --- multi-touch bookkeeping -----------------------------------------
+    // Raw client (pixel) position of every finger currently down on the
+    // canvas, keyed by pointerId. Used both to know "how many fingers" and,
+    // once a gesture is a scroll, to measure how far they've moved.
+    const activeTouchPoints = useRef<Map<number, Point>>(new Map());
+    // Mirrors activeTouchPoints.size — kept as its own ref only so the rest
+    // of the logic below reads a bit more plainly.
+    const activeTouchCount = useRef(0);
+    // Set the instant a 2nd finger is detected; blocks all drawing until
+    // every finger has lifted, so a gesture can never "become" a draw
+    // partway through.
+    const gestureAborted = useRef(false);
+    // The first touch waits here until we're sure no second finger is
+    // joining it.
+    const pendingTouch = useRef<{ pointerId: number; point: Point } | null>(null);
+    const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Average Y of all fingers as of the last move event, while a
+    // multi-touch (scroll) gesture is in progress.
+    const lastScrollYRef = useRef<number | null>(null);
+
+    const clearPendingTouch = useCallback(() => {
+        if (pendingTimer.current) {
+            clearTimeout(pendingTimer.current);
+            pendingTimer.current = null;
+        }
+        pendingTouch.current = null;
+    }, []);
+
+    const averageTouchY = useCallback(() => {
+        const ys = Array.from(activeTouchPoints.current.values()).map((p) => p.y);
+        return ys.reduce((sum, y) => sum + y, 0) / ys.length;
+    }, []);
 
     const paint = useCallback((from: Point | null, to: Point, stroke: Stroke) => {
         const canvas = canvasRef.current;
@@ -79,19 +118,92 @@ export function DrawingCanvas({ roomId }: { roomId: string }) {
         socket.emit('draw_stroke', { roomId, tool, color, lineWidth, points: [point], isStart });
     }
 
-    function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
-        if (!isDrawer) return;
-        const point = getNormalisedPoint(e.clientX, e.clientY);
-        if (!point) return;
-        e.currentTarget.setPointerCapture(e.pointerId);
+    function stopDrawing() {
+        isDrawingRef.current = false;
+        lastLocalPoint.current = null;
+        activeDrawPointerId.current = null;
+    }
+
+    // The actual "put ink down" logic, shared by mouse/pen (immediate) and
+    // touch (only called once the disambiguation delay has passed).
+    function beginStroke(point: Point, pointerId: number) {
+        canvasRef.current?.setPointerCapture(pointerId);
+        activeDrawPointerId.current = pointerId;
         isDrawingRef.current = true;
         lastLocalPoint.current = point;
         paint(null, point, { tool, color, lineWidth, points: [point], isStart: true });
         emitPoint(point, true);
     }
 
+    function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
+        // Touch bookkeeping happens BEFORE the isDrawer check: a guesser
+        // (non-drawer) still needs to be able to scroll the page with two
+        // fingers on the canvas, even though they can never draw on it.
+        if (e.pointerType === 'touch') {
+            activeTouchPoints.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            activeTouchCount.current = activeTouchPoints.current.size;
+
+            if (activeTouchCount.current >= 2) {
+                // A second finger just landed. Whatever the first finger was
+                // about to do (pending or already-committed), cancel it —
+                // this whole gesture is now a scroll, for its entire
+                // duration, until every finger lifts.
+                gestureAborted.current = true;
+                clearPendingTouch();
+                stopDrawing();
+                lastScrollYRef.current = averageTouchY();
+                return;
+            }
+        }
+
+        if (!isDrawer) return;
+        const point = getNormalisedPoint(e.clientX, e.clientY);
+        if (!point) return;
+
+        // Mouse and pen never have a "second finger" — draw immediately,
+        // exactly as before. Only touch goes through the disambiguation wait.
+        if (e.pointerType !== 'touch') {
+            beginStroke(point, e.pointerId);
+            return;
+        }
+
+        // First finger: don't draw yet. Wait briefly to see if a second
+        // finger is about to join this same gesture.
+        pendingTouch.current = { pointerId: e.pointerId, point };
+        pendingTimer.current = setTimeout(() => {
+            pendingTimer.current = null;
+            const pending = pendingTouch.current;
+            pendingTouch.current = null;
+            // If a second finger arrived during the wait, gestureAborted
+            // is already true and we must not draw.
+            if (!pending || gestureAborted.current) return;
+            beginStroke(pending.point, pending.pointerId);
+        }, TOUCH_DISAMBIGUATION_MS);
+    }
+
     function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
-        if (!isDrawer || !isDrawingRef.current) return;
+        if (e.pointerType === 'touch' && activeTouchPoints.current.has(e.pointerId)) {
+            activeTouchPoints.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        }
+
+        if (e.pointerType === 'touch' && gestureAborted.current) {
+            // Multi-touch gesture in progress: drive the scroll manually,
+            // since touch-none on the canvas stops the browser from ever
+            // doing it natively. Never draw while this is true.
+            if (activeTouchPoints.current.size >= 2) {
+                const avgY = averageTouchY();
+                if (lastScrollYRef.current !== null) {
+                    window.scrollBy(0, lastScrollYRef.current - avgY);
+                }
+                lastScrollYRef.current = avgY;
+            }
+            return;
+        }
+
+        if (!isDrawer) return;
+        if (e.pointerType === 'touch' && pendingTimer.current) return; // still disambiguating — ignore until confirmed
+        if (!isDrawingRef.current || e.pointerId !== activeDrawPointerId.current) return;
+
         const point = getNormalisedPoint(e.clientX, e.clientY);
         if (!point) return;
         paint(lastLocalPoint.current, point, { tool, color, lineWidth, points: [point], isStart: false });
@@ -99,9 +211,20 @@ export function DrawingCanvas({ roomId }: { roomId: string }) {
         emitPoint(point, false);
     }
 
-    function stopDrawing() {
-        isDrawingRef.current = false;
-        lastLocalPoint.current = null;
+    function handlePointerUp(e: React.PointerEvent<HTMLCanvasElement>) {
+        if (e.pointerType === 'touch') {
+            activeTouchPoints.current.delete(e.pointerId);
+            activeTouchCount.current = activeTouchPoints.current.size;
+            if (pendingTouch.current?.pointerId === e.pointerId) clearPendingTouch();
+            if (activeTouchCount.current === 0) {
+                // Only reset once every finger has lifted — otherwise a
+                // remaining finger would suddenly start drawing from
+                // wherever it happens to be, producing a stray stroke.
+                gestureAborted.current = false;
+                lastScrollYRef.current = null;
+            }
+        }
+        if (e.pointerId === activeDrawPointerId.current) stopDrawing();
     }
 
     useEffect(() => {
@@ -137,6 +260,11 @@ export function DrawingCanvas({ roomId }: { roomId: string }) {
         const handleRoundEnded = () => {
             setIsDrawer(false);
             stopDrawing();
+            clearPendingTouch();
+            gestureAborted.current = false;
+            activeTouchCount.current = 0;
+            activeTouchPoints.current.clear();
+            lastScrollYRef.current = null;
         };
         const handleClear = () => {
             lastRemotePoint.current = null;
@@ -159,34 +287,24 @@ export function DrawingCanvas({ roomId }: { roomId: string }) {
             socket.off('round_ended', handleRoundEnded);
             socket.off('clear_canvas', handleClear);
         };
-    }, [socket, paint, clearCanvas]);
+    }, [socket, paint, clearCanvas, clearPendingTouch]);
 
     return (
-        // h-full so this component fills whatever space GameRoom's flex-1
-        // wrapper gives it; min-h-0 lets the canvas row shrink instead of
-        // pushing the toolbar off-screen.
         <div className="h-full w-full flex flex-col items-center gap-2 min-h-0">
             <div className="relative flex-1 min-h-0 w-full flex items-center justify-center">
-                {/*
-                  h-full + w-auto + aspect-[4/3]: the browser picks whichever
-                  dimension the parent constrains (height, here) and derives
-                  the other from the aspect ratio. That's what lets the
-                  canvas shrink to fit a short viewport instead of forcing
-                  a scrollbar — no JS resize logic needed.
-                */}
                 <canvas
                     ref={canvasRef}
                     width={800}
                     height={600}
                     className={`h-full w-auto max-w-full aspect-[4/3] ${canvasWobble} border-[3px] border-black
                                 bg-[#fdfcf9] shadow-[6px_6px_0px_0px_#000] touch-none ${
-                                    isDrawer ? 'cursor' : 'cursor'
+                                    isDrawer ? 'cursor-crosshair' : 'cursor-not-allowed'
                                 }`}
                     onPointerDown={handlePointerDown}
                     onPointerMove={handlePointerMove}
-                    onPointerUp={stopDrawing}
-                    onPointerLeave={stopDrawing}
-                    onPointerCancel={stopDrawing}
+                    onPointerUp={handlePointerUp}
+                    onPointerLeave={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
                 />
                 {!isDrawer && (
                     <span
