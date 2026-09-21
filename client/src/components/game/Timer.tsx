@@ -10,7 +10,7 @@ export function Timer() {
     useEffect(() => {
         const handleTick = (data: { timeLeft: number }) => {
             const t = Math.max(data.timeLeft, 0);
-            if (t <= 5 && t > 0) play('tick');
+            if (t <= 10 && t > 0) play('tick');
             if (t === 0) stop('tick');
             setTimeLeft(t);
         };
