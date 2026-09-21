@@ -11,6 +11,7 @@ import { WordPicker } from '../components/game/WordPicker';
 import { scribbleBackgroundClass } from '../components/game/scribbleBackground';
 import { useSound, preloadSounds, playMusic } from '../hooks/useSound';
 import { Confetti } from '../components/game/Confetti';
+import { isMuted, toggleMute, isMusicMuted, toggleMusicMute } from '../hooks/useSound';
 
 type Player = { socketId: string; username: string; score: number };
 
@@ -35,6 +36,8 @@ export function GameRoom() {
     const [finalScores, setFinalScores] = useState<Player[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [sfxMuted, setSfxMuted] = useState(isMuted())
+    const [musicMuted, setMusicMuted] = useState(isMusicMuted())
 
     function handleCopyRoomId() {
         if (!roomId) return;
@@ -46,6 +49,16 @@ export function GameRoom() {
         setTimeout(() => {
             setCopied(false);
         }, 2000);
+    }
+
+    function handleToggleSfx() {
+        toggleMute()
+        setSfxMuted(isMuted())
+    }
+
+    function handleToggleMusic() {
+        toggleMusicMute()
+        setMusicMuted(isMusicMuted())
     }
 
     // Drawer open/closed state — only matters below the `lg` breakpoint.
@@ -184,8 +197,12 @@ export function GameRoom() {
                                 Round {room.round} / {totalRounds}
                             </span>
                         )}
-
+                        <div className='flex gap-2'>
+                            <button onClick={handleToggleSfx} aria-label={sfxMuted ? 'Unmute sound effects' : 'Mute sound effects'} className="h-8 w-8 rounded-full bg-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_#000] text-sm">{sfxMuted ? '🔇' : '🔊'}</button>
+                            <button onClick={handleToggleMusic} aria-label={musicMuted ? 'Unmute music' : 'Mute music'} className="h-8 w-8 rounded-full bg-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_#000] text-sm">{musicMuted ? '🔕' : '🎵'}</button>
+                        </div>
                         <Timer />
+
                     </div>
 
                     <div className="shrink-0">
