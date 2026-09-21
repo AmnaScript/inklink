@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSocket } from '../../hooks/useSocket';
 import { useSound } from '../../hooks/useSound';
 
@@ -6,20 +6,33 @@ export function Timer() {
     const socket = useSocket();
     const { play, stop } = useSound();
     const [timeLeft, setTimeLeft] = useState(0);
+    // Tracks whether we've already started the tick sound for THIS
+    // critical window, so play() fires once on entry, not once per second.
+    const tickStartedRef = useRef(false);
 
     useEffect(() => {
         const handleTick = (data: { timeLeft: number }) => {
             const t = Math.max(data.timeLeft, 0);
-            if (t <= 10 && t > 0) play('tick');
-            if (t === 0) stop('tick');
+
+            if (t <= 10 && t > 0 && !tickStartedRef.current) {
+                play('tick');
+                tickStartedRef.current = true;
+            }
+            if (t === 0) {
+                stop('tick');
+                tickStartedRef.current = false;
+            }
             setTimeLeft(t);
         };
-        const handleRoundStarted = (data: { timeLeft: number }) => setTimeLeft(data.timeLeft);
+        const handleRoundStarted = (data: { timeLeft: number }) => {
+            tickStartedRef.current = false;
+            setTimeLeft(data.timeLeft);
+        };
         const handleRoundEnded = () => {
             stop('tick');
+            tickStartedRef.current = false;
             setTimeLeft(0);
-        }
-
+        };
 
         socket.on('time_updated', handleTick);
         socket.on('round_started', handleRoundStarted);
