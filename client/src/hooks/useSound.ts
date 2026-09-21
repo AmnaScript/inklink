@@ -1,7 +1,7 @@
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 
 // Anything in client/public/ is served as-is from the root, so these paths
-// map straight to client/public/sounds/*.mp3 — no import/bundling needed.
+// map straight to client/public/sounds/*.wav — no import/bundling needed.
 const SOUNDS = {
     join: '/sounds/join.wav',
     wordPicker: '/sounds/word-picker.wav',
@@ -11,7 +11,7 @@ const SOUNDS = {
     timeout: '/sounds/timeout.wav',
     uiClick: '/sounds/ui-click.wav',
     win: '/sounds/win.wav',
-    lose: '/sounds/lose.wav'
+    lose: '/sounds/lose.wav',
 } as const;
 
 type SoundName = keyof typeof SOUNDS;
@@ -26,24 +26,36 @@ export function toggleMute(): void {
     localStorage.setItem(MUTE_KEY, isMuted() ? '0' : '1');
 }
 
+// Module-level, not inside the hook: shared by every component that calls
+// useSound(), across the whole app's lifetime — not one fresh cache per
+// component instance. Means each file is only ever fetched once, no matter
+// how many different components end up playing it.
+const cache: Partial<Record<SoundName, HTMLAudioElement>> = {};
+
+function getAudio(name: SoundName): HTMLAudioElement {
+    let audio = cache[name];
+    if (!audio) {
+        audio = new Audio(SOUNDS[name]);
+        audio.preload = 'auto'; // start downloading immediately on creation
+        audio.volume = name === 'tick' ? 0.3 : 0.6;
+        cache[name] = audio;
+    }
+    return audio;
+}
+
+// Call this once, early — e.g. right when a player enters a room — so every
+// sound file is already downloaded by the time anything actually needs to
+// play. This is what actually fixes the production delay/silence: without
+// it, the FIRST play() of any given sound is the one paying the network
+// fetch cost, live, at the exact moment it needs to be heard.
+export function preloadSounds(): void {
+    (Object.keys(SOUNDS) as SoundName[]).forEach((name) => getAudio(name));
+}
+
 export function useSound() {
-    // One Audio() per sound, created lazily on first use and reused after
-    // that — avoids re-fetching/re-decoding the file on every play.
-    const cache = useRef<Partial<Record<SoundName, HTMLAudioElement>>>({});
-
     const play = useCallback((name: SoundName) => {
-        console.log('play() called with', name, 'muted:', isMuted());
         if (isMuted()) return;
-
-        let audio = cache.current[name];
-        if (!audio) {
-            audio = new Audio(SOUNDS[name]);
-            audio.volume = name === 'tick' ? 0.3 : 0.6;
-            cache.current[name] = audio;
-        }
-
-        // Reset so the sound can restart even if a previous play of the
-        // same sound hasn't finished yet (e.g. rapid ticks).
+        const audio = getAudio(name);
         audio.currentTime = 0;
         audio.play().catch(() => {
             // Browsers reject play() before the first user gesture in the
@@ -52,7 +64,7 @@ export function useSound() {
     }, []);
 
     const stop = useCallback((name: SoundName) => {
-        const audio = cache.current[name];
+        const audio = cache[name];
         if (audio) {
             audio.pause();
             audio.currentTime = 0;
@@ -61,7 +73,8 @@ export function useSound() {
 
     return { play, stop };
 }
-// bottom of useSound.ts
+
+// --- background music (unchanged from before) --------------------------
 let musicAudio: HTMLAudioElement | null = null;
 const MUSIC_MUTE_KEY = 'inklink_music_muted';
 
@@ -70,10 +83,10 @@ export function isMusicMuted(): boolean {
 }
 
 export function startMusic() {
-    if (musicAudio) return; // already created — don't restart on every call
+    if (musicAudio) return;
     musicAudio = new Audio('/sounds/background-music.mp3');
     musicAudio.loop = true;
-    musicAudio.volume = 0.15; // meant to sit under SFX, not compete with it
+    musicAudio.volume = 0.15;
     if (!isMusicMuted()) musicAudio.play().catch(() => {});
 }
 
