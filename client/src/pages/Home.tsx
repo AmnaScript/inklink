@@ -136,7 +136,7 @@ export function Home() {
                     placeholder="Room code"
                     className={`w-full px-4 py-3 bg-blue-50/60 border-[3px] border-black ${wobbly1} text-lg font-semibold text-black placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-300 transition-all ${inkShadow} uppercase tracking-wider`}
                     value={roomCode}
-                    onChange={(e) => setRoomCode(e.target.value)}
+                    onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                     onKeyDown={(e) => e.key === 'Enter' && handleJoinRoom()}
                     disabled={pending}
                 />

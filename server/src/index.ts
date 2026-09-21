@@ -3,7 +3,7 @@ import http from 'node:http';
 import { config } from 'dotenv';
 import cors from 'cors';
 import { Server } from 'socket.io';
-import { nanoid } from 'nanoid';
+import { customAlphabet } from 'nanoid';
 import type { Room, Player, DrawAction, PublicRoom } from './types/game.types.js';
 import words from './utils/words.js';
 
@@ -31,7 +31,7 @@ const INTERMISSION_MS = 5000;
 const DRAWER_BONUS = 25;
 const MAX_STROKES = 8000;
 const MAX_MESSAGE_LENGTH = 200;
-
+const generateRoomId = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6);
 
 
 function clearRoomTimers(roomId: string) {
@@ -226,7 +226,7 @@ io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
     socket.on('create_room', (data) => {
-        const roomId = nanoid(6);
+        const roomId = generateRoomId();
         const username = sanitise(data?.username, 20) || 'Anonymous';
 
         const host: Player = {
@@ -261,7 +261,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('join_room', (data) => {
-        const roomId = sanitise(data?.roomId, 32);
+        const roomId = sanitise(data?.roomId, 32).toUpperCase();
         const username = sanitise(data?.username, 20) || 'Anonymous';
         const room = activeRooms.get(roomId);
 
@@ -269,6 +269,7 @@ io.on('connection', (socket) => {
             socket.emit('room_error', { message: 'Room not found' });
             return;
         }
+
 
         // Reconnect: same username, new socket id. Keeps their score.
         const existing = room.players.find((p) => p.username === username);
