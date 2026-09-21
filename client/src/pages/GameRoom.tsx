@@ -9,8 +9,7 @@ import { Scoreboard } from '../components/game/Scoreboard';
 import { RoundEndScreen } from '../components/game/RoundEndScreen';
 import { WordPicker } from '../components/game/WordPicker';
 import { scribbleBackgroundClass } from '../components/game/scribbleBackground';
-import { useSound } from '../hooks/useSound';
-import { startMusic } from '../hooks/useSound';
+import { useSound, preloadSounds, playMusic } from '../hooks/useSound';
 import { Confetti } from '../components/game/Confetti';
 
 type Player = { socketId: string; username: string; score: number };
@@ -63,7 +62,8 @@ export function GameRoom() {
             return;
         }
         socket.emit('join_room', { roomId, username });
-        startMusic()
+        preloadSounds();
+        playMusic('lobby');
 
         const handleRoomUpdate = (data: RoomState) => {
             setRoom(data);
@@ -91,6 +91,11 @@ export function GameRoom() {
             socket.off('connect', handleConnect);
         };
     }, [socket, roomId, navigate]);
+
+    useEffect(() => {
+        if (!room) return;
+        playMusic(room.status === 'playing' ? 'game' : 'lobby');
+    }, [room?.status]);
 
     if (!roomId) return <div>Room not found</div>;
 

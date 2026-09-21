@@ -74,26 +74,46 @@ export function useSound() {
     return { play, stop };
 }
 
-// --- background music (unchanged from before) --------------------------
+// --- background music: separate lobby vs. gameplay tracks --------------
+const MUSIC_TRACKS = {
+    lobby: {src : '/sounds/lobby-music.mp3', volume: 0.15 },
+    game: {src : '/sounds/game-music.mp3', volume: 0.06},
+} as const;
+type MusicTrack = keyof typeof MUSIC_TRACKS;
+
 let musicAudio: HTMLAudioElement | null = null;
+let currentTrack: MusicTrack | null = null;
 const MUSIC_MUTE_KEY = 'inklink_music_muted';
 
 export function isMusicMuted(): boolean {
     return localStorage.getItem(MUSIC_MUTE_KEY) === '1';
 }
 
-export function startMusic() {
-    if (musicAudio) return;
-    musicAudio = new Audio('/sounds/background-music.mp3');
+// Switches to `track`. If it's already the one playing, this is a no-op —
+// safe to call on every render/status-check without restarting the loop
+// each time.
+export function playMusic(track: MusicTrack) {
+    if (currentTrack === track && musicAudio) return;
+
+    musicAudio?.pause();
+    const config = MUSIC_TRACKS[track];
+    musicAudio = new Audio(config.src);
     musicAudio.loop = true;
-    musicAudio.volume = 0.15;
+    musicAudio.volume = config.volume;
+    currentTrack = track;
     if (!isMusicMuted()) musicAudio.play().catch(() => {});
+}
+
+export function stopMusic() {
+    musicAudio?.pause();
+    musicAudio = null;
+    currentTrack = null;
 }
 
 export function toggleMusicMute() {
     const nextMuted = !isMusicMuted();
     localStorage.setItem(MUSIC_MUTE_KEY, nextMuted ? '1' : '0');
-    if (!musicAudio) { if (!nextMuted) startMusic(); return; }
+    if (!musicAudio) return;
     if (nextMuted) musicAudio.pause();
     else musicAudio.play().catch(() => {});
 }
