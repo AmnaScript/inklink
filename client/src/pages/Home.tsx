@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../hooks/useSocket';
 import doodleBackground from '../assets/eb97e98cd0bd2b2f8658c24d25b1c4ae.jpg';
+import { useSound } from '../hooks/useSound';
 
 
 // Fonts used below via arbitrary values (font-['Bangers'] etc.) — add to
@@ -10,6 +11,7 @@ import doodleBackground from '../assets/eb97e98cd0bd2b2f8658c24d25b1c4ae.jpg';
 
 export function Home() {
     const socket = useSocket();
+    const { play } = useSound();
     const navigate = useNavigate();
 
     const [username, setUsername] = useState('');
@@ -18,6 +20,7 @@ export function Home() {
     const [pending, setPending] = useState(false);
 
     function handleCreateRoom() {
+        play('uiClick');
         if (!username.trim()) {
             setError('Please enter a username');
             return;
@@ -29,6 +32,7 @@ export function Home() {
     }
 
     function handleJoinRoom() {
+        play('uiClick');
         if (!username.trim() || !roomCode.trim()) {
             setError('Please enter a username and a room code');
             return;

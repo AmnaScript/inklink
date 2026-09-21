@@ -298,7 +298,7 @@ export function DrawingCanvas({ roomId }: { roomId: string }) {
                     height={600}
                     className={`h-full w-auto max-w-full aspect-[4/3] ${canvasWobble} border-[3px] border-black
                                 bg-[#fdfcf9] shadow-[6px_6px_0px_0px_#000] touch-none ${
-                                    isDrawer ? 'cursor-crosshair' : 'cursor-not-allowed'
+                                    isDrawer ? 'cursor' : 'cursor'
                                 }`}
                     onPointerDown={handlePointerDown}
                     onPointerMove={handlePointerMove}

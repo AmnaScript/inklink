@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSocket } from '../../hooks/useSocket';
+import { useSound } from '../../hooks/useSound';
 
 type Player = { socketId: string; username: string; score: number; isDrawer: boolean };
 
@@ -7,19 +8,29 @@ const itemWobble = 'rounded-tl-[14px] rounded-tr-[6px] rounded-br-[14px] rounded
 
 export function Scoreboard({ onClose }: { onClose?: () => void }) {
     const socket = useSocket();
+    const { play } = useSound();
     const [players, setPlayers] = useState<Player[]>([]);
     const [guessed, setGuessed] = useState<string[]>([]);
+    const knownIds = useRef<Set<string> | null>(null);
 
     useEffect(() => {
         const handleRoomUpdate = (data: { players: Player[]; guessedPlayers: string[] }) => {
-            setPlayers(data.players ?? []);
+
+            const incoming = data.players ?? [];
+            console.log('room_updated received, known:', knownIds.current, 'incoming:', incoming.map(p => p.socketId));
+            if (knownIds.current) {
+                const isNewJoiner = incoming.some((p) => !knownIds.current!.has(p.socketId));
+                if (isNewJoiner) play('join');
+            }
+            knownIds.current = new Set(incoming.map((p) => p.socketId));
+            setPlayers(incoming);
             setGuessed(data.guessedPlayers ?? []);
         };
         socket.on('room_updated', handleRoomUpdate);
         return () => {
             socket.off('room_updated', handleRoomUpdate);
         };
-    }, [socket]);
+    }, [socket, play]);
 
     const ranked = [...players].sort((a, b) => b.score - a.score);
 

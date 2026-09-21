@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSocket } from '../../hooks/useSocket';
+import { useSound } from '../../hooks/useSound';
+import { Confetti } from './Confetti';
 
 type Player = { socketId: string; username: string; score: number };
 
@@ -14,6 +16,7 @@ const rowWobble = 'rounded-tl-[12px] rounded-tr-[4px] rounded-br-[12px] rounded-
 
 export function RoundEndScreen() {
     const socket = useSocket();
+    const { play } = useSound();
     const [word, setWord] = useState<string | null>(null);
     const [reason, setReason] = useState<string>('timeout');
     const [players, setPlayers] = useState<Player[]>([]);
@@ -23,6 +26,9 @@ export function RoundEndScreen() {
             setWord(data.word);
             setReason(data.reason);
             setPlayers(data.players ?? []);
+            if (data.reason === 'all_guessed') play('allGuessed');
+            else if (data.reason === 'timeout') play('timeout');
+            else play('roundEnd');
         };
         const handleDismiss = () => setWord(null);
 
@@ -46,9 +52,11 @@ export function RoundEndScreen() {
     return (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4 font-['Kalam',cursive]">
             <div
-                className={`bg-[#fdfcf9] border-[3px] border-black ${cardWobble} shadow-[8px_8px_0px_0px_#000]
-                            px-8 py-8 max-w-md w-full text-center rotate-1`}
+                className={`relative bg-[#fdfcf9] border-[3px] border-black ${cardWobble} shadow-[8px_8px_0px_0px_#000]
+                            px-8 py-8 max-w-md w-full text-center rotate-1 animate-pop-in`}
             >
+                {reason === 'all_guessed' && <Confetti />}
+
                 <h1 className="font-['Fredoka',sans-serif] font-bold text-3xl sm:text-4xl text-slate-900 mb-2">
                     {REASON_TEXT[reason] ?? 'Round over!'}
                 </h1>

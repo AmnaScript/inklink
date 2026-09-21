@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSocket } from '../../hooks/useSocket';
+import { useSound } from '../../hooks/useSound';
 
 type Message = { username: string; text: string; isSystem?: boolean; isCorrect?: boolean };
 
@@ -8,11 +9,13 @@ const inputWobble = 'rounded-tl-[16px] rounded-tr-[8px] rounded-br-[16px] rounde
 
 export function ChatBox({ roomId, onClose }: { roomId: string; onClose?: () => void }) {
     const socket = useSocket();
+    const { play } = useSound();
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
     const bottomRef = useRef<HTMLDivElement>(null);
 
     function handleInputSend() {
+        play('uiClick');
         const text = inputText.trim();
         if (!text) return;
         socket.emit('chat_message', { roomId, message: text });
@@ -73,7 +76,7 @@ export function ChatBox({ roomId, onClose }: { roomId: string; onClose?: () => v
                         return (
                             <div
                                 key={index}
-                                className={`text-sm font-['Kalam',cursive] font-bold text-emerald-700 bg-emerald-100 ${bubbleWobble} px-2 py-1`}
+                                className={`text-sm font-['Kalam',cursive] font-bold text-emerald-700 bg-emerald-100 ${bubbleWobble} px-2 py-1 animate-bubble-in`}
                             >
                                 {msg.text}
                             </div>
@@ -83,14 +86,14 @@ export function ChatBox({ roomId, onClose }: { roomId: string; onClose?: () => v
                         return (
                             <div
                                 key={index}
-                                className={`text-sm font-['Kalam',cursive] italic text-emerald-700 bg-emerald-50 ${bubbleWobble} px-2 py-1`}
+                                className={`text-sm font-['Kalam',cursive] italic text-emerald-700 bg-emerald-50 ${bubbleWobble} px-2 py-1 animate-bubble-in animate-flash-green`}
                             >
                                 You guessed it: {msg.text} (hidden from others)
                             </div>
                         );
                     }
                     return (
-                        <div key={index} className="text-sm font-['Kalam',cursive] px-1 break-words">
+                        <div key={index} className="text-sm font-['Kalam',cursive] px-1 break-words animate-bubble-in">
                             <span className="font-bold text-blue-600">{msg.username}: </span>
                             <span className="text-black">{msg.text}</span>
                         </div>

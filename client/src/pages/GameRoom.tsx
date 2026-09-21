@@ -9,6 +9,9 @@ import { Scoreboard } from '../components/game/Scoreboard';
 import { RoundEndScreen } from '../components/game/RoundEndScreen';
 import { WordPicker } from '../components/game/WordPicker';
 import { scribbleBackgroundClass } from '../components/game/scribbleBackground';
+import { useSound } from '../hooks/useSound';
+import { startMusic } from '../hooks/useSound';
+import { Confetti } from '../components/game/Confetti';
 
 type Player = { socketId: string; username: string; score: number };
 
@@ -25,18 +28,20 @@ const rowWobble = 'rounded-tl-[12px] rounded-tr-[4px] rounded-br-[12px] rounded-
 
 export function GameRoom() {
     const socket = useSocket();
+    const { play } = useSound();
     const navigate = useNavigate();
     const { roomId } = useParams();
 
     const [room, setRoom] = useState<RoomState | null>(null);
     const [finalScores, setFinalScores] = useState<Player[] | null>(null);
     const [error, setError] = useState<string | null>(null);
-     const [copied, setCopied] = useState(false);
+    const [copied, setCopied] = useState(false);
 
-     function handleCopyRoomId() {
+    function handleCopyRoomId() {
         if (!roomId) return;
         navigator.clipboard.writeText(roomId);
         setCopied(true);
+        play('uiClick');
 
         // Hide the "Copied!" message after 2 seconds
         setTimeout(() => {
@@ -58,12 +63,19 @@ export function GameRoom() {
             return;
         }
         socket.emit('join_room', { roomId, username });
+        startMusic()
 
         const handleRoomUpdate = (data: RoomState) => {
             setRoom(data);
             if (data.status !== 'finished') setFinalScores(null);
         };
-        const handleGameEnded = (data: { players: Player[] }) => setFinalScores(data.players);
+        const handleGameEnded = (data: { players: Player[] }) => {
+            setFinalScores(data.players)
+            const topScore = data.players[0]?.score ?? 0;
+            const me = data.players.find((p) => p.socketId === socket.id);
+            if (me) play(me.score === topScore ? 'win' : 'lose');
+
+        };
         const handleError = (data: { message: string }) => setError(data.message);
         const handleConnect = () => socket.emit('join_room', { roomId, username });
 
@@ -139,7 +151,7 @@ export function GameRoom() {
                     <div className="w-full max-w-3xl flex flex-wrap items-center justify-between gap-2 shrink-0">
                         <div className="relative group inline-block">
                             {/* 1. Hover Tooltip */}
-                           
+
 
                             {/* 2. The Clickable Element */}
                             <span
@@ -150,7 +162,7 @@ export function GameRoom() {
                             >
                                 Room: {roomId}
                             </span>
-                             <div className="absolute left-1/2 top-full mt-2 -translate-x-1/2 scale-95 opacity-0 pointer-events-none group-hover:scale-100 group-hover:opacity-100 transition-all duration-200 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+                            <div className="absolute left-1/2 top-full mt-2 -translate-x-1/2 scale-95 opacity-0 pointer-events-none group-hover:scale-100 group-hover:opacity-100 transition-all duration-200 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
                                 Click to copy
                             </div>
 
@@ -183,7 +195,7 @@ export function GameRoom() {
 
                     {isHost && canStart && (
                         <button
-                            onClick={() => socket.emit('start_round', { roomId })}
+                            onClick={() => { play('uiClick'); socket.emit('start_round', { roomId }) }}
                             disabled={!enoughPlayers}
                             className="shrink-0 rounded-full bg-emerald-400 hover:bg-emerald-300 border-2 border-black
                                        px-5 sm:px-6 py-2 font-['Fredoka',sans-serif] font-bold text-black text-sm sm:text-base
@@ -220,15 +232,13 @@ export function GameRoom() {
             {finalScores && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 font-['Kalam',cursive]">
                     <div
-                        className={`bg-[#fdfcf9] border-[3px] border-black ${cardWobble} shadow-[10px_10px_0px_0px_#000]
+                        className={`relative bg-[#fdfcf9] border-[3px] border-black ${cardWobble} shadow-[10px_10px_0px_0px_#000]
                                     px-6 sm:px-8 py-8 sm:py-10 max-w-md w-full text-center -rotate-1`}
                     >
-                        <h1 className="font-['Fredoka',sans-serif] font-bold text-3xl sm:text-5xl text-slate-900 mb-1">
+                        <Confetti />
+                        <h1 className="font-['Fredoka',sans-serif] font-bold text-3xl sm:text-5xl text-slate-900 mb-1 pb-5">
                             Game Over
                         </h1>
-                        <span className="text-4xl block mb-6" aria-hidden>
-                            🎉
-                        </span>
 
                         <ul className="flex flex-col gap-2 mb-8">
                             {finalScores.map((player, i) => (
@@ -252,7 +262,7 @@ export function GameRoom() {
 
                         {isHost && (
                             <button
-                                onClick={() => socket.emit('start_round', { roomId })}
+                                onClick={() => { play('uiClick'); socket.emit('start_round', { roomId }) }}
                                 className="rounded-full bg-blue-500 hover:bg-blue-400 border-[3px] border-black
                                            px-8 py-3 font-['Fredoka',sans-serif] font-bold text-white text-lg sm:text-xl
                                            shadow-[4px_4px_0px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5

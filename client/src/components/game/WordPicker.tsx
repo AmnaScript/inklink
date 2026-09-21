@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSocket } from '../../hooks/useSocket';
+import { useSound } from '../../hooks/useSound';
 
 // Same crayon palette as DrawingCanvas
 const TILE_COLORS = ['bg-red-300', 'bg-yellow-300', 'bg-sky-300', 'bg-emerald-300', 'bg-purple-300'];
@@ -10,6 +11,7 @@ const tileWobble = 'rounded-tl-[18px] rounded-tr-[8px] rounded-br-[20px] rounded
 
 export function WordPicker({ roomId }: { roomId: string }) {
     const socket = useSocket();
+    const { play } = useSound();
     const [choices, setChoices] = useState<string[]>([]);
     const [waitingFor, setWaitingFor] = useState<string | null>(null);
     const [secondsLeft, setSecondsLeft] = useState(0);
@@ -36,6 +38,7 @@ export function WordPicker({ roomId }: { roomId: string }) {
         };
         const handleSelectionStarted = (data: { drawerName: string; drawerSocketId: string; seconds: number }) => {
             if (data.drawerSocketId === socket.id) return;
+            play('wordPicker');
             setChoices([]);
             setWaitingFor(data.drawerName);
             startCountdown(data.seconds ?? 15);
