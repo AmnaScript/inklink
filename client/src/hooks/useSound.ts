@@ -77,7 +77,7 @@ export function useSound() {
 // --- background music: separate lobby vs. gameplay tracks --------------
 const MUSIC_TRACKS = {
     lobby: {src : '/sounds/lobby-music.mp3', volume: 0.09 },
-    game: {src : '/sounds/game-music.mp3', volume: 0.01},
+    game: {src : '/sounds/game-music.mp3', volume: 0.03},
 } as const;
 type MusicTrack = keyof typeof MUSIC_TRACKS;
 

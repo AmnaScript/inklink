@@ -11,7 +11,7 @@ import { WordPicker } from '../components/game/WordPicker';
 import { scribbleBackgroundClass } from '../components/game/scribbleBackground';
 import { useSound, preloadSounds, playMusic } from '../hooks/useSound';
 import { Confetti } from '../components/game/Confetti';
-import { CryingEmoji } from '../components/game/CryingEmoji';
+// import { CryingEmoji } from '../components/game/CryingEmoji';
 import { isMuted, toggleMute, isMusicMuted, toggleMusicMute } from '../hooks/useSound';
 
 type Player = { socketId: string; username: string; score: number };
@@ -270,7 +270,7 @@ export function GameRoom() {
                         className={`relative bg-[#fdfcf9] border-[3px] border-black ${cardWobble} shadow-[10px_10px_0px_0px_#000]
                                     px-6 sm:px-8 py-8 sm:py-10 max-w-md w-full text-center -rotate-1`}
                     >
-                        {isWinner ? <Confetti /> : <CryingEmoji />}
+                       {isWinner ? <Confetti /> : <Confetti emojis={['😭', '😢', '😭']} />}
                         <h1 className="font-['Fredoka',sans-serif] font-bold text-3xl sm:text-5xl text-slate-900 mb-1 pb-5">
                             Game Over
                         </h1>
