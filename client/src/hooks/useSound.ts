@@ -76,32 +76,63 @@ export function useSound() {
 
 // --- background music: separate lobby vs. gameplay tracks --------------
 const MUSIC_TRACKS = {
-    lobby: {src : '/sounds/lobby-music.mp3', volume: 0.15 },
-    game: {src : '/sounds/game-music.mp3', volume: 0.06},
+    lobby: {src : '/sounds/lobby-music.mp3', volume: 0.09 },
+    game: {src : '/sounds/game-music.mp3', volume: 0.01},
 } as const;
 type MusicTrack = keyof typeof MUSIC_TRACKS;
 
 let musicAudio: HTMLAudioElement | null = null;
 let currentTrack: MusicTrack | null = null;
 const MUSIC_MUTE_KEY = 'inklink_music_muted';
+const CROSSFADE_MS = 1000;
 
 export function isMusicMuted(): boolean {
     return localStorage.getItem(MUSIC_MUTE_KEY) === '1';
 }
 
+function fadeVolume(audio: HTMLAudioElement, target: number, ms: number, onDone?: () => void) {
+    const steps = 20;
+    const start = audio.volume;
+    const stepMs = ms / steps;
+    let i = 0;
+    const timer = setInterval(() => {
+        i += 1;
+        audio.volume = start + (target - start) * (i / steps);
+        if (i >= steps) {
+            clearInterval(timer);
+            audio.volume = target;
+            onDone?.();
+        }
+    }, stepMs);
+}
+
 // Switches to `track`. If it's already the one playing, this is a no-op —
 // safe to call on every render/status-check without restarting the loop
 // each time.
+
 export function playMusic(track: MusicTrack) {
     if (currentTrack === track && musicAudio) return;
 
-    musicAudio?.pause();
     const config = MUSIC_TRACKS[track];
-    musicAudio = new Audio(config.src);
-    musicAudio.loop = true;
-    musicAudio.volume = config.volume;
+    const previous = musicAudio;
+
+    const next = new Audio(config.src);
+    next.loop = true;
+    next.volume = 0; // start silent, fade up below
     currentTrack = track;
-    if (!isMusicMuted()) musicAudio.play().catch(() => {});
+    musicAudio = next;
+
+    if (!isMusicMuted()) {
+        next.play().catch(() => {});
+        fadeVolume(next, config.volume, CROSSFADE_MS);
+    }
+
+    // Fade the OLD track out over the same duration, then actually stop
+    // it — this is what makes the two overlap instead of one just
+    // vanishing and the other popping in.
+    if (previous) {
+        fadeVolume(previous, 0, CROSSFADE_MS, () => previous.pause());
+    }
 }
 
 export function stopMusic() {

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSocket } from '../../hooks/useSocket';
 import { useSound } from '../../hooks/useSound';
+import { scoreboardBackgroundClass } from './scoreboardBackground';
 
 type Player = { socketId: string; username: string; score: number; isDrawer: boolean };
 
@@ -36,9 +37,9 @@ export function Scoreboard({ onClose }: { onClose?: () => void }) {
 
     return (
         <div
-            className="h-full bg-emerald-200 border-r-[3px] border-black
+            className={`h-full bg-emerald-200 border-r-[3px] border-black
                        rounded-tr-[38px] rounded-br-[12px]
-                       p-4 flex flex-col gap-3 overflow-hidden relative shadow-[6px_0px_12px_-4px_rgba(0,0,0,0.4)] lg:shadow-none"
+                       p-4 flex flex-col gap-3 overflow-hidden relative shadow-[6px_0px_12px_-4px_rgba(0,0,0,0.4)] lg:shadow-none ${scoreboardBackgroundClass}`}
         >
             <div className="flex items-center justify-between shrink-0">
                 <h2

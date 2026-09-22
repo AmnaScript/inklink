@@ -47,7 +47,7 @@ export function RoundEndScreen() {
 
     if (!word) return null;
 
-    const ranked = [...players].sort((a, b) => b.score - a.score);
+    // const ranked = [...players].sort((a, b) => b.score - a.score);
 
     return (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4 font-['Kalam',cursive]">
@@ -55,9 +55,9 @@ export function RoundEndScreen() {
                 className={`relative bg-[#fdfcf9] border-[3px] border-black ${cardWobble} shadow-[8px_8px_0px_0px_#000]
                             px-8 py-8 max-w-md w-full text-center rotate-1 animate-pop-in`}
             >
-                {reason === 'all_guessed' && <Confetti />}
+                {/* {reason === 'all_guessed' && <Confetti />} */}
 
-                <h1 className="font-['Fredoka',sans-serif] font-bold text-3xl sm:text-4xl text-slate-900 mb-2">
+                <h1 className="font-['Fredoka',sans-serif] font-bold text-2xl sm:text-3xl text-slate-900 mb-2">
                     {REASON_TEXT[reason] ?? 'Round over!'}
                 </h1>
                 <p className="text-xl mb-6">
@@ -67,7 +67,7 @@ export function RoundEndScreen() {
                     </span>
                 </p>
 
-                <ul className="flex flex-col gap-2 mb-6">
+                {/* <ul className="flex flex-col gap-2 mb-6">
                     {ranked.map((player, i) => (
                         <li
                             key={player.socketId}
@@ -85,7 +85,7 @@ export function RoundEndScreen() {
                             </span>
                         </li>
                     ))}
-                </ul>
+                </ul> */}
 
                 <p className="text-sm text-gray-500 italic">Next round starting...</p>
             </div>

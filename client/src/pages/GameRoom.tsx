@@ -11,6 +11,7 @@ import { WordPicker } from '../components/game/WordPicker';
 import { scribbleBackgroundClass } from '../components/game/scribbleBackground';
 import { useSound, preloadSounds, playMusic } from '../hooks/useSound';
 import { Confetti } from '../components/game/Confetti';
+import { CryingEmoji } from '../components/game/CryingEmoji';
 import { isMuted, toggleMute, isMusicMuted, toggleMusicMute } from '../hooks/useSound';
 
 type Player = { socketId: string; username: string; score: number };
@@ -26,6 +27,9 @@ type RoomState = {
 const cardWobble = 'rounded-tl-[34px] rounded-tr-[16px] rounded-br-[38px] rounded-bl-[20px]';
 const rowWobble = 'rounded-tl-[12px] rounded-tr-[4px] rounded-br-[12px] rounded-bl-[4px]';
 
+const inkShadow = 'shadow-[3px_3px_0px_0px_#000]';
+const pillWobble = 'rounded-tl-[20px] rounded-tr-[8px] rounded-br-[20px] rounded-bl-[8px]';
+
 export function GameRoom() {
     const socket = useSocket();
     const { play } = useSound();
@@ -38,6 +42,7 @@ export function GameRoom() {
     const [copied, setCopied] = useState(false);
     const [sfxMuted, setSfxMuted] = useState(isMuted())
     const [musicMuted, setMusicMuted] = useState(isMusicMuted())
+    const [isWinner, setIsWinner] = useState<boolean | null>(null);
 
     function handleCopyRoomId() {
         if (!roomId) return;
@@ -81,12 +86,17 @@ export function GameRoom() {
         const handleRoomUpdate = (data: RoomState) => {
             setRoom(data);
             if (data.status !== 'finished') setFinalScores(null);
+            setIsWinner(null);
         };
         const handleGameEnded = (data: { players: Player[] }) => {
             setFinalScores(data.players)
             const topScore = data.players[0]?.score ?? 0;
             const me = data.players.find((p) => p.socketId === socket.id);
-            if (me) play(me.score === topScore ? 'win' : 'lose');
+            if (me) {
+                const won = me.score === topScore;
+                setIsWinner(won);
+                play(won ? 'win' : 'lose');
+            }
 
         };
         const handleError = (data: { message: string }) => setError(data.message);
@@ -152,15 +162,15 @@ export function GameRoom() {
                     <div className="w-full max-w-3xl flex items-center justify-between shrink-0 lg:hidden">
                         <button
                             onClick={() => setPlayersOpen(true)}
-                            className="rounded-full bg-emerald-200 border-2 border-black px-3 py-1
-                                       font-['Fredoka',sans-serif] font-bold text-sm shadow-[2px_2px_0px_0px_#000]"
+                            className={`bg-emerald-200 border-[3px] border-black ${pillWobble} px-3 py-1 -rotate-1
+                font-['Fredoka',sans-serif] font-bold text-sm ${inkShadow}`}
                         >
                             👥 Players
                         </button>
                         <button
                             onClick={() => setChatOpen(true)}
-                            className="rounded-full bg-sky-200 border-2 border-black px-3 py-1
-                                       font-['Fredoka',sans-serif] font-bold text-sm shadow-[2px_2px_0px_0px_#000]"
+                            className={`bg-sky-200 border-[3px] border-black ${pillWobble} px-3 py-1 rotate-1
+                font-['Fredoka',sans-serif] font-bold text-sm ${inkShadow}`}
                         >
                             💬 Chat
                         </button>
@@ -174,9 +184,9 @@ export function GameRoom() {
                             {/* 2. The Clickable Element */}
                             <span
                                 onClick={handleCopyRoomId}
-                                className="bg-white border-2 border-dashed border-blue-500 rounded-full px-3 sm:px-4 py-1
-                   font-['Fredoka',sans-serif] font-bold text-blue-600 text-sm sm:text-base -rotate-1
-                   shadow-[2px_2px_0px_0px_#000] truncate max-w-[45%] cursor-pointer hover:bg-blue-50 transition-colors select-none"
+                                className={`bg-white border-[3px] border-black ${pillWobble} px-3 sm:px-4 py-1
+                font-['Fredoka',sans-serif] font-bold text-blue-600 text-sm sm:text-base -rotate-2
+                ${inkShadow} truncate max-w-[45%] cursor-pointer hover:bg-blue-50 transition-colors select-none`}
                             >
                                 Room: {roomId}
                             </span>
@@ -193,7 +203,10 @@ export function GameRoom() {
                         </div>
 
                         {room && room.round > 0 && (
-                            <span className="font-['Fredoka',sans-serif] font-semibold text-slate-800 text-sm sm:text-lg">
+                            <span
+                                className={`bg-yellow-200 border-[3px] border-black ${pillWobble} px-3 py-1 rotate-2
+                    font-['Fredoka',sans-serif] font-bold text-slate-900 text-sm sm:text-base ${inkShadow}`}
+                            >
                                 Round {room.round} / {totalRounds}
                             </span>
                         )}
@@ -205,7 +218,7 @@ export function GameRoom() {
 
                     </div>
 
-                    <div className="shrink-0">
+                    <div className="shrink-0 pt-5">
                         <WordDisplay />
                     </div>
 
@@ -257,7 +270,7 @@ export function GameRoom() {
                         className={`relative bg-[#fdfcf9] border-[3px] border-black ${cardWobble} shadow-[10px_10px_0px_0px_#000]
                                     px-6 sm:px-8 py-8 sm:py-10 max-w-md w-full text-center -rotate-1`}
                     >
-                        <Confetti />
+                        {isWinner ? <Confetti /> : <CryingEmoji />}
                         <h1 className="font-['Fredoka',sans-serif] font-bold text-3xl sm:text-5xl text-slate-900 mb-1 pb-5">
                             Game Over
                         </h1>

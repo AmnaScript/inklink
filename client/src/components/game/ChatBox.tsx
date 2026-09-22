@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSocket } from '../../hooks/useSocket';
 import { useSound } from '../../hooks/useSound';
+import { chatBackgroundClass } from './chatBackground';
 
 type Message = { username: string; text: string; isSystem?: boolean; isCorrect?: boolean };
 
@@ -45,9 +46,9 @@ export function ChatBox({ roomId, onClose }: { roomId: string; onClose?: () => v
 
     return (
         <div
-            className="h-full bg-sky-200 border-l-[3px] border-black
+            className={`h-full bg-sky-200 border-l-[3px] border-black
                        rounded-tl-[38px] rounded-bl-[12px]
-                       p-4 flex flex-col gap-3 shadow-[-6px_0px_12px_-4px_rgba(0,0,0,0.4)] lg:shadow-none"
+                       p-4 flex flex-col gap-3 shadow-[-6px_0px_12px_-4px_rgba(0,0,0,0.4)] lg:shadow-none`}
         >
             <div className="flex items-center justify-between shrink-0">
                 {onClose && (
@@ -70,7 +71,7 @@ export function ChatBox({ roomId, onClose }: { roomId: string; onClose?: () => v
                 {onClose && <span className="lg:hidden h-8 w-8 shrink-0" />}
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto bg-white border-2 border-black rounded-tl-[20px] rounded-br-[20px] p-2 space-y-1">
+            <div className={`flex-1 min-h-0 overflow-y-auto bg-white border-2 border-black rounded-tl-[20px] rounded-br-[20px] p-2 space-y-1 ${chatBackgroundClass}`}>
                 {messages.map((msg, index) => {
                     if (msg.isSystem) {
                         return (

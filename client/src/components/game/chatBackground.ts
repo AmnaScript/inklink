@@ -1,0 +1,12 @@
+// export const chatBackgroundClass = `
+//   bg-[url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='140'%20height='140'%3E%3Cg%20fill='none'%20stroke-width='2'%20stroke-linecap='round'%20stroke-opacity='0.13'%3E%3Cpath%20d='M20 20 h28 v18 h-16 l-6 7 v-7 h-6 z'%20stroke='%2360a5fa'/%3E%3Ccircle cx='100'%20cy='40'%20r='2.5'%20fill='%23f472b6'%20stroke='none'/%3E%3Ccircle%20cx='112'%20cy='48'%20r='2'%20fill='%23fbbf24'%20stroke='none'/%3E%3Cpath%20d='M90 100 h24 v15 h-13 l-5 6 v-6 h-6 z'%20stroke='%2334d399'/%3E%3Ccircle%20cx='30'%20cy='110'%20r='2.5'%20fill='%23a78bfa'%20stroke='none'/%3E%3Ccircle%20cx='42'%20cy='118'%20r='2'%20fill='%2360a5fa'%20stroke='none'/%3E%3C/g%3E%3C/svg%3E")]
+//   bg-repeat
+// `;
+export const chatBackgroundClass = `
+  bg-[url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='180'%20height='180'%20viewBox='0%200%20180%20180'%3E%3Cg%20fill='none'%20stroke='%23000000'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%20stroke-opacity='0.12'%3E%3Cpath%20d='M30%2020%20l6%2012%2013%202%20-9%209%202%2013%20-12%20-6%20-12%206%202%20-13%20-9%20-9%2013%20-2%20z'/%3E%3Cpath%20d='M130%20110%20l4%208%209%201%20-6%206%201%209%20-8%20-4%20-8%204%201%20-9%20-6%20-6%209%20-1%20z'/%3E%3Cpath%20d='M140%2030%20l12%20-6%20M155%2040%20l10%204%20M135%2050%20l8%2010'/%3E%3Ccircle%20cx='40'%20cy='130'%20r='10'/%3E%3Cpath%20d='M35%20125%20l10%2010%20M45%20125%20l-10%2010'/%3E%3Cpath%20d='M85%2080%20l20%20-20%20M100%2055%20l8%208'/%3E%3C/g%3E%3C/svg%3E")]
+  bg-repeat
+`;
+// export const chatBackgroundClass = `
+//   bg-[url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='160'%20height='160'%20viewBox='0%200%20160%20160'%3E%3Cg%20fill='none'%20stroke='%23000000'%20stroke-width='2.5'%20stroke-linecap='round'%20stroke-linejoin='round'%20stroke-opacity='0.11'%3E%3Cpath%20d='M20%2030%20q10%20-15%2020%200%20t20%200'/%3E%3Cpath%20d='M100%20120%20q10%20-15%2020%200%20t20%200'/%3E%3Cpolygon%20points='120,30%20140,50%20110,55'/%3E%3Cpolygon%20points='30,110%2050,130%2020,135'/%3E%3Cpath%20d='M80%2025%20v14%20M73%2032%20h14'/%3E%3Cpath%20d='M40%2075%20v12%20M34%2081%20h12'/%3E%3Ccircle%20cx='110'%20cy='85'%20r='7'/%3E%3C/g%3E%3C/svg%3E")]
+//   bg-repeat
+// `;
