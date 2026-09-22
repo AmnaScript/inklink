@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSocket } from '../../hooks/useSocket';
 import { useSound } from '../../hooks/useSound';
-import { Confetti } from './Confetti';
+// import { Confetti } from './Confetti';
 
 type Player = { socketId: string; username: string; score: number };
 
@@ -12,20 +12,20 @@ const REASON_TEXT: Record<string, string> = {
 };
 
 const cardWobble = 'rounded-tl-[30px] rounded-tr-[14px] rounded-br-[34px] rounded-bl-[18px]';
-const rowWobble = 'rounded-tl-[12px] rounded-tr-[4px] rounded-br-[12px] rounded-bl-[4px]';
+// const rowWobble = 'rounded-tl-[12px] rounded-tr-[4px] rounded-br-[12px] rounded-bl-[4px]';
 
 export function RoundEndScreen() {
     const socket = useSocket();
     const { play } = useSound();
     const [word, setWord] = useState<string | null>(null);
     const [reason, setReason] = useState<string>('timeout');
-    const [players, setPlayers] = useState<Player[]>([]);
+    // const [players, setPlayers] = useState<Player[]>([]);
 
     useEffect(() => {
         const handleRoundEnd = (data: { word: string; reason: string; players: Player[] }) => {
             setWord(data.word);
             setReason(data.reason);
-            setPlayers(data.players ?? []);
+            // setPlayers(data.players ?? []);
             if (data.reason === 'all_guessed') play('allGuessed');
             else if (data.reason === 'timeout') play('timeout');
             else play('roundEnd');
